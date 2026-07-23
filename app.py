@@ -1,12 +1,18 @@
 import streamlit as st
 
 from agent.react_agent import ReactAgent
+from rag.vector_store import VectorStoreService
 
 
 st.set_page_config(page_title="智能客服", page_icon="💬")
 
 st.title("智能客服")
 st.divider()
+
+try:
+    VectorStoreService().load_document()
+except Exception as exc:
+    st.warning(f"知识库自动入库失败：{exc}")
 
 if "agent" not in st.session_state:
     st.session_state.agent = ReactAgent()

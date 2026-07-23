@@ -49,7 +49,7 @@ streamlit run app.py
 
 把 `.txt` 或 `.pdf` 文件放入 `data/` 目录。
 
-当前项目已经提供 `VectorStoreService.load_document()`，后续可以封装为独立入库脚本。
+应用启动时会自动扫描 `data/` 目录并增量写入 Chroma 向量库。已经入库的文件通过 MD5 校验自动跳过；新增或内容发生变化的文件会在下一次启动时处理。
 
 ## 验证
 
@@ -57,6 +57,12 @@ streamlit run app.py
 python -m compileall app.py agent rag model utils
 python -c "from agent.react_agent import ReactAgent; ReactAgent(); print('ReactAgent init ok')"
 python -c "from rag.rag_service import RagSummarizeService; RagSummarizeService(); print('RAG init ok')"
+```
+
+启动 Streamlit 后会自动执行知识库入库：
+
+```powershell
+streamlit run app.py
 ```
 
 ## 开发规范
