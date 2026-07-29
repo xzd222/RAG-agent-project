@@ -1,5 +1,10 @@
 # RAG Agent Project
 
+> 🧠 本项目配套了一套 **AI Agent 开发规则文件**（[`AGENTS.md`](AGENTS.md) + [`docs/agents/`](docs/agents/)），
+> 涵盖架构边界、编码规范、模块约束、安全规则、Git 操作等工程化准则，
+> 基于 **RAG Agent Project** 实践总结，欢迎参考和修改。
+> 如果觉得有用，请给原项目点个 ⭐ Star！
+
 基于 LangChain、通义千问和 Chroma 的轻量级 RAG Agent 原型，提供本地知识库增强的智能问答能力。
 
 ## 技术栈
@@ -162,7 +167,7 @@ python -c "from rag.rag_service import RagSummarizeService; RagSummarizeService(
 
 ## 开发
 
-开发前请阅读本地 `AGENTS.md`（不包含在仓库中）。
+AI Agent 开发前请阅读 [`AGENTS.md`](AGENTS.md) 及 [`docs/agents/`](docs/agents/) 中的规则文档。
 
 ## License
 

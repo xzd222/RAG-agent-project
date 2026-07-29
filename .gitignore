@@ -21,9 +21,6 @@ logs/
 chroma_db/
 md5.text
 
-# Project docs (local only)
-AGENTS.md
-
 # IDE
 .vscode/
 .idea/
