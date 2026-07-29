@@ -181,3 +181,77 @@ def execute_stream(self, query: str):
 2. **P0 Bug**：流式输出首条回显用户消息
 
 建议先修复这两个 P0 问题后，可以打通 Streamlit → Agent → Tool → RAG 的完整链路。之后再补测试和优化初始化方式。
+
+---
+
+## 🆕 补充审查：前后端分离改造（2026-07-29 第二次审查）
+
+**审查范围**：`api.py`、`manage.py`、`frontend/`、`config/agent.yml`（模型修复）
+
+### 新增文件
+
+| 文件 | 说明 |
+|------|------|
+| `api.py` | FastAPI 后端入口，5 个端点 |
+| `manage.py` | Streamlit 知识库管理页面 |
+| `frontend/` | Vite + React 18 + TypeScript + Tailwind CSS 前端项目 |
+
+### 已修复问题
+
+| 问题 | 状态 |
+|------|------|
+| P0: `qwen3-plus` 模型不存在 → 改为 `qwen-max` | ✅ 已修复 |
+| P0: 流式输出回显用户消息 | ✅ 已修复 |
+
+### FastAPI 端点测试结果（11/11 通过）
+
+| 端点 | 方法 | 状态 | 说明 |
+|------|------|------|------|
+| `/api/health` | GET | ✅ | 返回 `{"status": "ok"}` |
+| `/api/chat` | POST | ✅ | SSE 流式返回，`text/event-stream` |
+| `/api/documents` | GET | ✅ | 列出文件及入库状态 |
+| `/api/documents/upload` | POST | ✅ | 上传并自动入库 |
+| `/api/documents/upload` (重复) | POST | ✅ | MD5 去重，幂等 |
+| `/api/documents/reingest` | POST | ✅ | 重新扫描入库 |
+| `/api/documents/{name}` | DELETE | ✅ | 删除文件 |
+| `/api/documents/{name}` (不存在) | DELETE | ✅ | 返回 404 |
+| `/api/documents/upload` (.jpg) | POST | ✅ | 拒绝不支持格式，400 |
+| 文件清理 | — | ✅ | 测试后自动清理 |
+
+### 前端构建测试
+
+| 检查项 | 状态 |
+|--------|------|
+| TypeScript 类型检查 (`tsc --noEmit`) | ✅ 通过 |
+| Vite 生产构建 | ✅ 通过 (118ms) |
+| Tailwind CSS | ✅ 配置正确 |
+
+### 知识库管理页测试
+
+| 检查项 | 状态 |
+|--------|------|
+| 语法编译 | ✅ 通过 |
+
+### 当前状态总结
+
+| 维度 | 状态 |
+|------|------|
+| 模型调用 | ✅ 修复 (`qwen-max`) |
+| 流式输出 | ✅ 修复 (不再回显) |
+| FastAPI 后端 | ✅ 5 个端点全部可用 |
+| React 前端 | ✅ 构建通过，3 个组件 |
+| 知识库管理 | ✅ 上传/删除/入库状态 |
+| 测试覆盖 | ⚠️ 有 `test_api.py` 但非 pytest |
+
+### 启动方式
+
+```powershell
+# 终端1: 后端
+uvicorn api:app --reload --port 8000
+
+# 终端2: 前端
+cd frontend && npm run dev
+
+# 终端3: 知识库管理（按需）
+streamlit run manage.py --server.port 8502
+```
