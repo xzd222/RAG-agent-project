@@ -192,9 +192,10 @@ def execute_stream(self, query: str):
 
 | 文件 | 说明 |
 |------|------|
-| `api.py` | FastAPI 后端入口，5 个端点 |
+| `api.py` | FastAPI 后端入口，6 个端点 |
 | `manage.py` | Streamlit 知识库管理页面 |
 | `frontend/` | Vite + React 18 + TypeScript + Tailwind CSS 前端项目 |
+| `test_api.py` | FastAPI 端点集成测试脚本 |
 
 ### 已修复问题
 
@@ -203,55 +204,84 @@ def execute_stream(self, query: str):
 | P0: `qwen3-plus` 模型不存在 → 改为 `qwen-max` | ✅ 已修复 |
 | P0: 流式输出回显用户消息 | ✅ 已修复 |
 
-### FastAPI 端点测试结果（11/11 通过）
+---
+
+### 🆕 第三次审查：Bug 修复 + UI 美化（2026-07-29 第三次审查）
+
+**审查范围**：502/404 修复、管理页防重、文档预览、UI 美化
+
+#### FastAPI 端点测试结果（7/7 通过）
 
 | 端点 | 方法 | 状态 | 说明 |
 |------|------|------|------|
-| `/api/health` | GET | ✅ | 返回 `{"status": "ok"}` |
-| `/api/chat` | POST | ✅ | SSE 流式返回，`text/event-stream` |
-| `/api/documents` | GET | ✅ | 列出文件及入库状态 |
-| `/api/documents/upload` | POST | ✅ | 上传并自动入库 |
-| `/api/documents/upload` (重复) | POST | ✅ | MD5 去重，幂等 |
-| `/api/documents/reingest` | POST | ✅ | 重新扫描入库 |
-| `/api/documents/{name}` | DELETE | ✅ | 删除文件 |
-| `/api/documents/{name}` (不存在) | DELETE | ✅ | 返回 404 |
-| `/api/documents/upload` (.jpg) | POST | ✅ | 拒绝不支持格式，400 |
-| 文件清理 | — | ✅ | 测试后自动清理 |
+| `/` | GET | ✅ | SPA fallback，返回前端页面 |
+| `/api/health` | GET | ✅ | `{"status": "ok"}` |
+| `/api/chat` | POST | ✅ | SSE 流式，`qwen-max` 正常响应 |
+| `/api/documents/upload` | POST | ✅ | 上传+入库，返回 preview（≤200字） |
+| `/api/documents` | GET | ✅ | 列出文件，含 `preview` 和 `size_kb` 字段 |
+| `/api/documents/{name}` | DELETE | ✅ | 删除 + 清理 |
+| `/api/documents/upload` (.jpg) | POST | ✅ | 拒绝，400 |
 
-### 前端构建测试
+#### 前端验证
 
 | 检查项 | 状态 |
 |--------|------|
-| TypeScript 类型检查 (`tsc --noEmit`) | ✅ 通过 |
-| Vite 生产构建 | ✅ 通过 (118ms) |
-| Tailwind CSS | ✅ 配置正确 |
+| TypeScript (`tsc --noEmit`) | ✅ 通过 |
+| Vite 构建 | ✅ 128ms |
+| Tailwind CSS v4 | ✅ 正确 |
+| 组件数 | 4 个（App / ChatBox / MessageBubble / MessageInput）|
 
-### 知识库管理页测试
+#### UI 美化内容
+
+| 组件 | 改动 |
+|------|------|
+| `App.tsx` | 渐变色 header（violet→purple→fuchsia）、阴影边框 |
+| `ChatBox.tsx` | 渐变背景、空状态星形图标+提示文字 |
+| `MessageBubble.tsx` | 用户/AI 圆形头像带渐变色、气泡阴影、三点跳动 loading 动画 |
+| `MessageInput.tsx` | 圆角输入框、发送按钮带旋转 spinner + 缩放动效 |
+
+#### 知识库管理页验证
 
 | 检查项 | 状态 |
 |--------|------|
 | 语法编译 | ✅ 通过 |
+| 重复上传死循环 | ✅ 已修复（`session_state` 指纹防重）|
+| 文档预览（前200字）| ✅ 已在文件列表中展示 |
+| 删除功能 | ✅ 正常 |
+| 重新入库 | ✅ 正常 |
 
-### 当前状态总结
+#### 架构变更
+
+| 变更 | 说明 |
+|------|------|
+| 根路由 `/` | 直接托管 `frontend/dist/`，**只需启动一个后端即可访问聊天页面** |
+| 静态文件挂载 | `StaticFiles(directory=frontend/dist, html=True)` |
+| `manage.py` 防重 | 上传后记录 `(filename, size)` 指纹，`st.rerun()` 不会重复入库 |
+| 预览 API | `GET /api/documents` 返回 `preview` 字段（txt 前 200 字）|
+
+#### 当前状态总览
 
 | 维度 | 状态 |
 |------|------|
-| 模型调用 | ✅ 修复 (`qwen-max`) |
-| 流式输出 | ✅ 修复 (不再回显) |
-| FastAPI 后端 | ✅ 5 个端点全部可用 |
-| React 前端 | ✅ 构建通过，3 个组件 |
-| 知识库管理 | ✅ 上传/删除/入库状态 |
+| 模型调用 | ✅ `qwen-max` 正常 |
+| 流式输出 | ✅ 不回显用户消息 |
+| FastAPI 后端 | ✅ 6 个端点全部可用 |
+| 前端页面 | ✅ 一键访问 `http://localhost:8000` |
+| 前后端分离 | ✅ 无需 Vite proxy，FastAPI 直出 |
+| UI 美化 | ✅ 渐变色 + 头像 + loading 动画 |
+| 知识库管理 | ✅ 防重上传 + 预览 + 删除 |
 | 测试覆盖 | ⚠️ 有 `test_api.py` 但非 pytest |
 
-### 启动方式
+#### 启动方式（简化）
 
 ```powershell
-# 终端1: 后端
-uvicorn api:app --reload --port 8000
+# 构建前端（首次或前端改动后）
+cd frontend && npm run build
 
-# 终端2: 前端
-cd frontend && npm run dev
+# 一键启动（后端 + 前端页面）
+uvicorn api:app --port 8000
+# 访问 http://localhost:8000
 
-# 终端3: 知识库管理（按需）
+# 知识库管理页（按需）
 streamlit run manage.py --server.port 8502
 ```
