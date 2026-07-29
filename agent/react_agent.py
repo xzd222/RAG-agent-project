@@ -25,7 +25,9 @@ class ReactAgent:
                 {"role": "user", "content": query}
             ]
         }
-        for chunk in self.agent.stream(input_dict, stream_mode="values"):
-            latest_message = chunk["messages"][-1]
-            if latest_message.content:
-                yield latest_message.content.strip() + "\n"
+        for chunk in self.agent.stream(input_dict, stream_mode="updates"):
+            for node_output in chunk.values():
+                if "messages" in node_output:
+                    for msg in node_output["messages"]:
+                        if hasattr(msg, "content") and msg.content:
+                            yield msg.content + "\n"
