@@ -7,7 +7,8 @@ from typing import AsyncGenerator
 import uvicorn
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from agent.react_agent import ReactAgent
@@ -26,8 +27,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # ── Request / Response models ──────────────────────────────────────────
+
 
 class ChatRequest(BaseModel):
     query: str
@@ -37,6 +38,8 @@ class DocumentInfo(BaseModel):
     filename: str
     md5: str
     ingested: bool
+    size_kb: float
+    preview: str = ""
 
 
 # ── Lazy singletons ────────────────────────────────────────────────────
@@ -59,7 +62,34 @@ def get_vector_store() -> VectorStoreService:
     return _vector_store
 
 
-# ── Endpoints ──────────────────────────────────────────────────────────
+def _read_preview(filepath: str, max_chars: int = 200) -> str:
+    """读取 txt 文件前 max_chars 个字符作为预览."""
+    if not filepath.endswith(".txt"):
+        return ""
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            text = f.read(max_chars)
+            if len(text) >= max_chars:
+                text = text[:max_chars].rsplit(" ", 1)[0] + "…"
+            return text
+    except Exception:
+        return ""
+
+
+# ── SPA fallback ───────────────────────────────────────────────────────
+
+
+@app.get("/")
+async def serve_frontend():
+    """Serve the React frontend."""
+    index_path = get_abs_path("frontend/dist/index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "Frontend not built. Run: cd frontend && npm run build"}
+
+
+# ── API Endpoints ──────────────────────────────────────────────────────
+
 
 @app.get("/api/health")
 async def health():
@@ -149,15 +179,19 @@ async def list_documents():
         if ext not in (".txt", ".pdf"):
             continue
         md5 = get_file_md5_hex(filepath)
+        size_kb = round(os.path.getsize(filepath) / 1024, 1)
+        preview = _read_preview(filepath)
         documents.append(
             DocumentInfo(
                 filename=filename,
                 md5=md5 or "",
                 ingested=md5 in ingested_md5s if md5 else False,
+                size_kb=size_kb,
+                preview=preview,
             )
         )
 
-    return {"documents": documents}
+    return {"documents": sorted(documents, key=lambda d: d.filename)}
 
 
 @app.delete("/api/documents/{filename}")
@@ -186,6 +220,13 @@ async def reingest_documents():
     except Exception as e:
         logger.error(f"Re-ingestion failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Re-ingestion failed: {e}")
+
+
+# ── Static files (must be last) ────────────────────────────────────────
+
+frontend_dist = get_abs_path("frontend/dist")
+if os.path.isdir(frontend_dist):
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
 
 
 if __name__ == "__main__":
