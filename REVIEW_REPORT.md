@@ -285,3 +285,37 @@ uvicorn api:app --port 8000
 # 知识库管理页（按需）
 streamlit run manage.py --server.port 8502
 ```
+
+---
+
+## 🆕 第四次审查：README 更新 + 全量回归（2026-07-29）
+
+**测试结果**：12/12 全量回归通过，前端 TypeScript 检查 + Vite 构建通过（123ms）
+
+| # | 检查项 | 状态 |
+|---|--------|------|
+| 1 | `GET /` 前端页面 | ✅ |
+| 2 | `GET /api/health` | ✅ |
+| 3 | `GET /api/documents` | ✅ |
+| 4 | `POST /api/chat` SSE 流式 | ✅ |
+| 5 | `POST /api/documents/upload` | ✅ |
+| 6 | 文档 preview 字段 | ✅ |
+| 7 | `POST /api/documents/reingest` | ✅ |
+| 8 | `DELETE /api/documents/{name}` | ✅ |
+| 9 | 测试文件清理 | ✅ |
+| 10 | ReactAgent 初始化 | ✅ |
+| 11 | RagSummarizeService 初始化 | ✅ |
+| 12 | compileall 全模块 | ✅ |
+
+### 项目最终状态
+
+| 维度 | 状态 |
+|------|------|
+| 模型调用 | ✅ `qwen-max` |
+| 流式输出 | ✅ SSE |
+| FastAPI 后端 | ✅ 7 个端点 |
+| React 前端 | ✅ 渐变色 UI + 头像 + 动画 |
+| 知识库管理 | ✅ 防重上传 + 预览 + 删除 |
+| API 测试 | ✅ `test_api.py` |
+| README | ✅ 同步当前架构 |
+| 审查报告 | ✅ 本文件 |
