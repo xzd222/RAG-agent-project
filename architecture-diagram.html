@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Agent 项目架构图</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card-bg: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #7c3aed;
+    --green: #3fb950;
+    --orange: #d2991d;
+    --red: #f85149;
+    --purple: #a371f7;
+    --cyan: #39d2c0;
+    --pink: #db61a2;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    padding: 40px 20px;
+    line-height: 1.5;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+
+  h1 {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .subtitle { text-align: center; color: var(--text-dim); margin-bottom: 48px; font-size: 0.95rem; }
+
+  /* Section titles */
+  .section-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 40px 0 20px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title:first-of-type { margin-top: 0; }
+
+  /* === SYSTEM OVERVIEW === */
+  .system-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    align-items: center;
+  }
+
+  /* Box styles */
+  .box {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 28px;
+  }
+  .box-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .box-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  /* User / Browser */
+  .user-box {
+    text-align: center;
+    border-color: var(--accent);
+    border-style: dashed;
+    min-width: 200px;
+  }
+  .user-box .box-title { color: var(--accent); }
+
+  /* Frontend box */
+  .frontend-box {
+    border-left: 3px solid var(--cyan);
+    min-width: 340px;
+  }
+  .frontend-box .box-title { color: var(--cyan); }
+
+  /* Backend box */
+  .backend-box {
+    border-left: 3px solid var(--green);
+    min-width: 380px;
+  }
+  .backend-box .box-title { color: var(--green); }
+
+  /* External box */
+  .external-box {
+    border-left: 3px solid var(--orange);
+  }
+  .external-box .box-title { color: var(--orange); }
+
+  /* Storage box */
+  .storage-box {
+    border-left: 3px solid var(--purple);
+  }
+  .storage-box .box-title { color: var(--purple); }
+
+  /* Config box */
+  .config-box {
+    border-left: 3px solid var(--pink);
+  }
+  .config-box .box-title { color: var(--pink); }
+
+  /* Arrows */
+  .arrow-down {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+  }
+  .arrow-down svg { margin: 4px 0; }
+
+  .arrow-h {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-dim);
+    font-size: 0.78rem;
+  }
+
+  /* Row layout */
+  .row { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+  .row-wrap { flex-wrap: wrap; }
+
+  /* Tech tags */
+  .tech-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .tech-tag {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 99px;
+    background: rgba(88,166,255,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(88,166,255,0.2);
+  }
+
+  /* === LAYERED ARCH === */
+  .layered {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .layer {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--border);
+  }
+  .layer:first-child { border-radius: 12px 12px 0 0; }
+  .layer:last-child { border-radius: 0 0 12px 12px; }
+  .layer-label {
+    width: 110px;
+    min-width: 110px;
+    padding: 14px 16px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .layer-content {
+    padding: 14px 20px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    flex: 1;
+  }
+  .layer-item {
+    font-size: 0.82rem;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    white-space: nowrap;
+  }
+  .layer-arrow {
+    display: flex;
+    justify-content: center;
+    padding: 2px 0;
+    color: var(--text-dim);
+    font-size: 0.7rem;
+  }
+
+  /* Colors per layer */
+  .l-presentation .layer-label { background: rgba(57,210,192,0.1); color: var(--cyan); }
+  .l-api .layer-label { background: rgba(63,185,80,0.1); color: var(--green); }
+  .l-agent .layer-label { background: rgba(88,166,255,0.1); color: var(--accent); }
+  .l-rag .layer-label { background: rgba(163,113,247,0.1); color: var(--purple); }
+  .l-model .layer-label { background: rgba(210,153,29,0.1); color: var(--orange); }
+  .l-storage .layer-label { background: rgba(219,97,162,0.1); color: var(--pink); }
+
+  /* === DATA FLOW === */
+  .flow-steps {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+  .flow-step {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    text-align: center;
+    min-width: 100px;
+  }
+  .flow-step-num {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 2px;
+  }
+  .flow-step-text { font-size: 0.8rem; }
+  .flow-arrow { color: var(--text-dim); font-size: 1.2rem; }
+
+  /* === API TABLE === */
+  .api-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .api-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--card-bg);
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+  }
+  .api-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .api-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .method {
+    font-weight: 700;
+    font-size: 0.7rem;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .method-get { background: rgba(63,185,80,0.15); color: var(--green); }
+  .method-post { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .method-delete { background: rgba(248,81,73,0.15); color: var(--red); }
+
+  /* === COMPONENT TREE === */
+  .comp-tree {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.82rem;
+    line-height: 2;
+    overflow-x: auto;
+  }
+  .comp-tree .c-indent { color: var(--text-dim); }
+  .comp-tree .c-tag { color: var(--accent); }
+  .comp-tree .c-attr { color: var(--purple); }
+  .comp-tree .c-text { color: var(--text-dim); }
+  .comp-tree .c-comment { color: #545d68; font-style: italic; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>RAG Agent 智能问答系统 — 架构图</h1>
+  <p class="subtitle">基于 LangChain + 通义千问 + Chroma 的轻量级 RAG 知识库 Agent</p>
+
+  <!-- ========== SYSTEM OVERVIEW ========== -->
+  <div class="section-title">📐 系统总览</div>
+
+  <div class="system-overview">
+    <!-- User -->
+    <div class="box user-box">
+      <div class="box-label">客户端</div>
+      <div class="box-title">🖥️ 浏览器</div>
+      <div style="font-size:0.78rem;color:var(--text-dim)">http://localhost:8000</div>
+    </div>
+
+    <div class="arrow-down">
+      <span>HTTP / SSE 流式</span>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+    </div>
+
+    <div class="row">
+      <!-- Frontend -->
+      <div class="box frontend-box">
+        <div class="box-label">前端层 :5173 (dev) / 静态托管 (prod)</div>
+        <div class="box-title">⚛️ React 19 + TypeScript</div>
+        <div class="tech-tags">
+          <span class="tech-tag">React 19</span>
+          <span class="tech-tag">TypeScript</span>
+          <span class="tech-tag">Tailwind CSS 4</span>
+          <span class="tech-tag">Vite 8</span>
+        </div>
+        <div style="margin-top:10px;font-size:0.8rem;color:var(--text-dim)">
+          App → ChatBox → MessageBubble<br>
+          MessageInput · SSE 流式消费
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;color:var(--text-dim);font-size:1.5rem;">⟷</div>
+
+      <!-- Backend -->
+      <div class="box backend-box">
+        <div class="box-label">后端层 :8000</div>
+        <div class="box-title">🐍 FastAPI + Uvicorn</div>
+        <div class="tech-tags">
+          <span class="tech-tag">FastAPI</span>
+          <span class="tech-tag">Uvicorn</span>
+          <span class="tech-tag">LangChain</span>
+          <span class="tech-tag">SSE</span>
+        </div>
+        <div style="margin-top:10px;font-size:0.8rem;color:var(--text-dim)">
+          7 个 API 端点 · CORS · 静态文件托管<br>
+          ReactAgent · 工具编排 · RAG 检索
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:8px;">
+      <!-- External -->
+      <div class="box external-box">
+        <div class="box-label">外部服务</div>
+        <div class="box-title">☁️ 通义千问 (DashScope)</div>
+        <div class="tech-tags">
+          <span class="tech-tag">qwen-max</span>
+          <span class="tech-tag">text-embedding-v4</span>
+        </div>
+        <div style="margin-top:6px;font-size:0.78rem;color:var(--text-dim)">LLM 推理 + 文本嵌入</div>
+      </div>
+
+      <!-- Storage -->
+      <div class="box storage-box">
+        <div class="box-label">本地持久化</div>
+        <div class="box-title">💾 Chroma + 文件系统</div>
+        <div class="tech-tags">
+          <span class="tech-tag">Chroma (SQLite)</span>
+          <span class="tech-tag">chroma_db/</span>
+          <span class="tech-tag">data/</span>
+          <span class="tech-tag">md5.text</span>
+        </div>
+        <div style="margin-top:6px;font-size:0.78rem;color:var(--text-dim)">向量存储 + 文档 MD5 去重</div>
+      </div>
+
+      <!-- Config -->
+      <div class="box config-box">
+        <div class="box-label">配置 &amp; 提示词</div>
+        <div class="box-title">⚙️ YAML + TXT</div>
+        <div class="tech-tags">
+          <span class="tech-tag">config/*.yml</span>
+          <span class="tech-tag">prompts/*.txt</span>
+        </div>
+        <div style="margin-top:6px;font-size:0.78rem;color:var(--text-dim)">模型参数 · 切片配置 · 系统提示词</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== LAYERED ARCHITECTURE ========== -->
+  <div class="section-title">🏗️ 后端分层架构</div>
+
+  <div class="layered">
+    <div class="layer l-presentation">
+      <div class="layer-label">📡 路由 / 静态</div>
+      <div class="layer-content">
+        <span class="layer-item">GET / → index.html</span>
+        <span class="layer-item">CORS 中间件</span>
+        <span class="layer-item">StaticFiles</span>
+        <span class="layer-item">懒加载单例</span>
+      </div>
+    </div>
+    <div class="layer-arrow">▼</div>
+    <div class="layer l-api">
+      <div class="layer-label">🔌 API 端点</div>
+      <div class="layer-content">
+        <span class="layer-item">/api/health</span>
+        <span class="layer-item">/api/chat (SSE)</span>
+        <span class="layer-item">/api/documents</span>
+        <span class="layer-item">/api/documents/upload</span>
+        <span class="layer-item">/api/documents/{fn}</span>
+        <span class="layer-item">/api/documents/reingest</span>
+      </div>
+    </div>
+    <div class="layer-arrow">▼</div>
+    <div class="layer l-agent">
+      <div class="layer-label">🤖 Agent 层</div>
+      <div class="layer-content">
+        <span class="layer-item">ReactAgent</span>
+        <span class="layer-item">create_agent()</span>
+        <span class="layer-item">ReAct 模式</span>
+        <span class="layer-item">SSE stream_mode</span>
+        <span class="layer-item">系统提示词</span>
+      </div>
+    </div>
+    <div class="layer-arrow">▼</div>
+    <div class="layer l-rag">
+      <div class="layer-label">🔍 RAG 服务</div>
+      <div class="layer-content">
+        <span class="layer-item">RagSummarizeService</span>
+        <span class="layer-item">检索器 (top-k=3)</span>
+        <span class="layer-item">LCEL Chain</span>
+        <span class="layer-item">上下文拼接</span>
+        <span class="layer-item">提示词模板</span>
+      </div>
+    </div>
+    <div class="layer-arrow">▼</div>
+    <div class="layer l-model">
+      <div class="layer-label">🧠 模型工厂</div>
+      <div class="layer-content">
+        <span class="layer-item">ChatModelFactory → ChatTongyi(qwen-max)</span>
+        <span class="layer-item">EmbeddingFactory → DashScopeEmbeddings(v4)</span>
+      </div>
+    </div>
+    <div class="layer-arrow">▼</div>
+    <div class="layer l-storage">
+      <div class="layer-label">🗄️ 向量存储</div>
+      <div class="layer-content">
+        <span class="layer-item">VectorStoreService</span>
+        <span class="layer-item">Chroma (chroma_db/)</span>
+        <span class="layer-item">RecursiveCharacterTextSplitter</span>
+        <span class="layer-item">MD5 去重</span>
+        <span class="layer-item">PyPDFLoader / TextLoader</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TOOLS ========== -->
+  <div class="section-title">🔧 Agent 工具集 (4 个工具)</div>
+
+  <div class="row">
+    <div class="box" style="border-left:3px solid var(--purple);min-width:180px;">
+      <div class="box-title" style="color:var(--purple);">🔍 rag_summarize</div>
+      <div style="font-size:0.8rem;color:var(--text-dim);margin-top:4px;">RAG 检索 + 总结生成<br>从知识库中查找答案</div>
+      <div class="tech-tags" style="margin-top:8px;"><span class="tech-tag">真实工具</span></div>
+    </div>
+    <div class="box" style="border-left:3px solid var(--orange);min-width:140px;">
+      <div class="box-title" style="color:var(--orange);">🌤️ get_weather</div>
+      <div style="font-size:0.8rem;color:var(--text-dim);margin-top:4px;">返回城市天气</div>
+      <div class="tech-tags" style="margin-top:8px;"><span class="tech-tag">Mock</span></div>
+    </div>
+    <div class="box" style="border-left:3px solid var(--orange);min-width:140px;">
+      <div class="box-title" style="color:var(--orange);">🆔 get_user_id</div>
+      <div style="font-size:0.8rem;color:var(--text-dim);margin-top:4px;">返回随机用户ID</div>
+      <div class="tech-tags" style="margin-top:8px;"><span class="tech-tag">Mock</span></div>
+    </div>
+    <div class="box" style="border-left:3px solid var(--orange);min-width:140px;">
+      <div class="box-title" style="color:var(--orange);">📅 get_current_month</div>
+      <div style="font-size:0.8rem;color:var(--text-dim);margin-top:4px;">返回随机月份</div>
+      <div class="tech-tags" style="margin-top:8px;"><span class="tech-tag">Mock</span></div>
+    </div>
+  </div>
+
+  <!-- ========== DATA FLOW ========== -->
+  <div class="section-title">🔄 一次聊天请求的完整数据流</div>
+
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-step-num">①</div>
+      <div class="flow-step-text">用户输入问题</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">②</div>
+      <div class="flow-step-text">POST /api/chat<br>{ query }</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">③</div>
+      <div class="flow-step-text">ReactAgent<br>execute_stream()</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">④</div>
+      <div class="flow-step-text">LangChain ReAct<br>模型决策</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">⑤</div>
+      <div class="flow-step-text">调用 RAG 工具<br>(如需知识库)</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">⑥</div>
+      <div class="flow-step-text">Chroma 向量检索<br>top-k=3</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">⑦</div>
+      <div class="flow-step-text">qwen-max<br>生成回答</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">⑧</div>
+      <div class="flow-step-text">SSE 逐块流式<br>返回前端</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-num">⑨</div>
+      <div class="flow-step-text">React 实时<br>渲染消息</div>
+    </div>
+  </div>
+
+  <!-- ========== API ENDPOINTS ========== -->
+  <div class="section-title">📋 API 端点一览</div>
+
+  <table class="api-table">
+    <thead>
+      <tr><th>方法</th><th>路径</th><th>功能</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="method method-get">GET</span></td>
+        <td style="font-family:monospace">/</td>
+        <td>前端页面</td>
+        <td>StaticFiles 托管 frontend/dist/index.html</td>
+      </tr>
+      <tr>
+        <td><span class="method method-get">GET</span></td>
+        <td style="font-family:monospace">/api/health</td>
+        <td>健康检查</td>
+        <td>返回 {"status":"ok","service":"rag-agent-api"}</td>
+      </tr>
+      <tr>
+        <td><span class="method method-post">POST</span></td>
+        <td style="font-family:monospace">/api/chat</td>
+        <td>SSE 流式聊天</td>
+        <td>接受 {query}，返回 text/event-stream</td>
+      </tr>
+      <tr>
+        <td><span class="method method-get">GET</span></td>
+        <td style="font-family:monospace">/api/documents</td>
+        <td>文档列表</td>
+        <td>返回文件名、MD5、入库状态</td>
+      </tr>
+      <tr>
+        <td><span class="method method-post">POST</span></td>
+        <td style="font-family:monospace">/api/documents/upload</td>
+        <td>上传文档</td>
+        <td>Multipart file (txt/pdf)，自动入库</td>
+      </tr>
+      <tr>
+        <td><span class="method method-delete">DELETE</span></td>
+        <td style="font-family:monospace">/api/documents/{filename}</td>
+        <td>删除文档</td>
+        <td>从 data/ 目录删除文件</td>
+      </tr>
+      <tr>
+        <td><span class="method method-post">POST</span></td>
+        <td style="font-family:monospace">/api/documents/reingest</td>
+        <td>批量重新入库</td>
+        <td>扫描 data/ 全部文件重新向量化</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ========== COMPONENT TREE ========== -->
+  <div class="section-title">🧩 前端组件树</div>
+
+  <div class="comp-tree">
+<span class="c-tag">&lt;App&gt;</span>                          <span class="c-comment">← 状态持有者 (messages, loading)</span>
+<span class="c-indent">│</span>
+<span class="c-indent">└──</span> <span class="c-tag">&lt;div</span> <span class="c-attr">className</span>=<span class="c-text">"max-w-3xl mx-auto"</span><span class="c-tag">&gt;</span>
+<span class="c-indent">    │</span>
+<span class="c-indent">    ├──</span> <span class="c-tag">&lt;header&gt;</span>                  <span class="c-comment">← 渐变紫色标题栏 "智能客服"</span>
+<span class="c-indent">    │</span>
+<span class="c-indent">    ├──</span> <span class="c-tag">&lt;ChatBox</span> <span class="c-attr">messages</span>=<span class="c-text">{messages}</span><span class="c-tag">&gt;</span>  <span class="c-comment">← 消息列表 + 自动滚动</span>
+<span class="c-indent">    │   └──</span> <span class="c-tag">&lt;MessageBubble</span> <span class="c-attr">role</span> <span class="c-attr">content</span><span class="c-tag">/&gt;</span>  <span class="c-comment">← 单条消息 (user 靠右 / AI 靠左)</span>
+<span class="c-indent">    │       </span>                        <span class="c-comment">空状态: 品牌问候界面</span>
+<span class="c-indent">    │</span>
+<span class="c-indent">    └──</span> <span class="c-tag">&lt;MessageInput</span> <span class="c-attr">onSend</span> <span class="c-attr">loading</span><span class="c-tag">/&gt;</span>  <span class="c-comment">← 输入框 + 发送按钮</span>
+  </div>
+
+  <!-- ========== DEPLOYMENT ========== -->
+  <div class="section-title">🐳 部署架构 (Docker)</div>
+
+  <div class="row">
+    <div class="box" style="border-left:3px solid var(--accent);min-width:220px;">
+      <div class="box-label">阶段 1</div>
+      <div class="box-title" style="color:var(--accent);">📦 Node 22-alpine</div>
+      <div style="font-size:0.82rem;color:var(--text-dim);margin-top:6px;">
+        npm ci → npm run build<br>
+        输出: frontend/dist/
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;color:var(--text-dim);font-size:1.5rem;">→</div>
+    <div class="box" style="border-left:3px solid var(--green);min-width:220px;">
+      <div class="box-label">阶段 2</div>
+      <div class="box-title" style="color:var(--green);">🐍 Python 3.13-slim</div>
+      <div style="font-size:0.82rem;color:var(--text-dim);margin-top:6px;">
+        pip install → 复制 dist/<br>
+        uvicorn api:app --host 0.0.0.0 --port 8000
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;color:var(--text-dim);font-size:1.5rem;">→</div>
+    <div class="box" style="border-left:3px solid var(--purple);min-width:180px;">
+      <div class="box-label">运行</div>
+      <div class="box-title" style="color:var(--purple);">🚀 单进程单容器</div>
+      <div style="font-size:0.82rem;color:var(--text-dim);margin-top:6px;">
+        端口 8000<br>
+        FastAPI 直出前端
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== DIRECTORY MAP ========== -->
+  <div class="section-title">📁 项目文件地图</div>
+
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+    <div class="box">
+      <div class="box-label" style="color:var(--green);">入口</div>
+      <div style="font-size:0.82rem;">
+        <strong>api.py</strong> — FastAPI 应用<br>
+        <strong>manage.py</strong> — Streamlit 管理台<br>
+        <strong>Dockerfile</strong> — 多阶段构建
+      </div>
+    </div>
+    <div class="box">
+      <div class="box-label" style="color:var(--accent);">agent/</div>
+      <div style="font-size:0.82rem;">
+        <strong>react_agent.py</strong> — ReAct Agent 编排<br>
+        <strong>tools/agent_tools.py</strong> — 4 个工具定义
+      </div>
+    </div>
+    <div class="box">
+      <div class="box-label" style="color:var(--purple);">rag/</div>
+      <div style="font-size:0.82rem;">
+        <strong>rag_service.py</strong> — 检索+总结<br>
+        <strong>vector_store.py</strong> — Chroma 管理
+      </div>
+    </div>
+    <div class="box">
+      <div class="box-label" style="color:var(--orange);">model/</div>
+      <div style="font-size:0.82rem;">
+        <strong>factory.py</strong> — ChatModel + Embedding 工厂
+      </div>
+    </div>
+    <div class="box">
+      <div class="box-label" style="color:var(--cyan);">frontend/</div>
+      <div style="font-size:0.82rem;">
+        <strong>src/App.tsx</strong> — 主组件<br>
+        <strong>src/api/chat.ts</strong> — SSE 客户端<br>
+        <strong>src/components/</strong> — UI 组件
+      </div>
+    </div>
+    <div class="box">
+      <div class="box-label" style="color:var(--pink);">utils/</div>
+      <div style="font-size:0.82rem;">
+        config_handler · file_handler<br>
+        logger_handler · path_tool · prompt_loader
+      </div>
+    </div>
+    <div class="box">
+      <div class="box-label" style="color:var(--text-dim);">config/ + prompts/</div>
+      <div style="font-size:0.82rem;">
+        agent.yml · chroma.yml · prompts.yml · rag.yml<br>
+        main_prompt.txt · rag_summarize.txt
+      </div>
+    </div>
+    <div class="box">
+      <div class="box-label" style="color:var(--text-dim);">持久化</div>
+      <div style="font-size:0.82rem;">
+        <strong>data/</strong> — 知识库文件<br>
+        <strong>chroma_db/</strong> — 向量数据库<br>
+        <strong>md5.text</strong> — 文件去重
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    RAG Agent 项目架构图 · 生成于 2026-07-29 · 技术栈: FastAPI + LangChain + React + Chroma + 通义千问
+  </div>
+</div>
+</body>
+</html>
